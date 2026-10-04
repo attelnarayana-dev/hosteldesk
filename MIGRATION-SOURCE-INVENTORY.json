@@ -1,0 +1,12 @@
+{
+  "users": 1,
+  "customers": 0,
+  "rooms": 1,
+  "students": 1,
+  "guests": 0,
+  "payments": 0,
+  "studentHistory": 0,
+  "guestHistory": 0,
+  "auditLogs": 1,
+  "sessions": 0
+}

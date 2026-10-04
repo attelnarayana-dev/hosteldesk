@@ -1,0 +1,52 @@
+import { NextResponse } from "next/server";
+import { query } from "../../../../lib/db";
+import { hash, newToken, tokenHash } from "../../../../lib/auth";
+
+export async function POST(req) {
+  try {
+    const b = await req.json();
+    const email = String(b.email || "").trim().toLowerCase();
+    const passwordHash = hash(b.password || "");
+    const r = await query(
+      `select id, tenant_id, hostel_name, email, role, status
+         from customers
+        where lower(email) = $1 and password_hash = $2
+        limit 1`,
+      [email, passwordHash]
+    );
+    const c = r.rows[0];
+    if (!c || c.status !== "Active") {
+      return NextResponse.json({ error: "Invalid login details or inactive account" }, { status: 401 });
+    }
+
+    const token = newToken();
+    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+    await query(`delete from sessions where customer_id = $1`, [c.id]);
+    await query(
+      `insert into sessions(token_hash,customer_id,tenant_id,role,expires_at)
+       values($1,$2,$3,$4,$5)`,
+      [tokenHash(token), c.id, c.tenant_id, c.role || "CUSTOMER", expiresAt.toISOString()]
+    );
+
+    const res = NextResponse.json({
+      ok: true,
+      user: {
+        email: c.email,
+        role: c.role || "CUSTOMER",
+        hostelName: c.hostel_name || "",
+        customerId: c.id,
+      },
+    });
+    res.cookies.set("hosteldesk_session", token, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 30,
+    });
+    return res;
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json({ error: "Login service unavailable" }, { status: 500 });
+  }
+}

@@ -1,0 +1,16 @@
+import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
+import { query } from "../../../../lib/db";
+import { tokenHash } from "../../../../lib/auth";
+
+export async function POST() {
+  try {
+    const token = cookies().get("hosteldesk_session")?.value;
+    if (token) await query(`delete from sessions where token_hash = $1`, [tokenHash(token)]);
+  } catch (error) {
+    console.error(error);
+  }
+  const r = NextResponse.json({ ok: true });
+  r.cookies.set("hosteldesk_session", "", { httpOnly: true, path: "/", maxAge: 0 });
+  return r;
+}

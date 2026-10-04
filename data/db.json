@@ -1,0 +1,57 @@
+{
+  "users": [
+    {
+      "id": "u1",
+      "email": "admin@hosteldesk.local",
+      "password": "Admin@123",
+      "role": "Super Admin"
+    }
+  ],
+  "rooms": [
+    {
+      "id": "R-101",
+      "floor": "1",
+      "roomNumber": "101",
+      "beds": [
+        {
+          "id": "R-101-A",
+          "label": "A",
+          "status": "Occupied",
+          "studentId": "STU-1790991949140"
+        },
+        {
+          "id": "R-101-B",
+          "label": "B",
+          "status": "Available",
+          "studentId": null
+        }
+      ]
+    }
+  ],
+  "students": [
+    {
+      "id": "STU-1790991949140",
+      "createdAt": "2026-10-03T01:45:49.140Z",
+      "fullName": "Niranjan P",
+      "mobile": "",
+      "gender": "Male",
+      "dob": "16/07/1993",
+      "documentNumber": "4377 3418 2145",
+      "roomNumber": "101",
+      "bed": "A",
+      "advance": "",
+      "monthlyRent": "",
+      "emergency": "",
+      "address": "",
+      "room": "101",
+      "floor": "1"
+    }
+  ],
+  "auditLogs": [
+    {
+      "action": "CREATE_STUDENT",
+      "studentId": "STU-1790991949140",
+      "at": "2026-10-03T01:45:49.140Z"
+    }
+  ]
+}
