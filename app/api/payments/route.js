@@ -17,7 +17,7 @@ export async function POST(req){
     const s=await requireCustomer(); const b=await req.json(); const amount=money(b.amount);
     if(amount<=0) return NextResponse.json({error:"Enter a valid payment amount"},{status:400});
     const result=await withTransaction(async client=>{
-      const r=await client.query(`select * from students where id=$1 and tenant_id=$2 union all select null as id,null as tenant_id,null as full_name,null as mobile,null as gender,null as dob,null as document_number,null as emergency,null as address,null as room_number,null as floor,null as bed,0 as advance,0 as monthly_rent,status,null as front_proof_key,null as back_proof_key,null as created_at,null as updated_at,'{}'::jsonb as raw_data where false`,[b.studentId,s.tenantId]);
+      const r=await client.query(`select * from students where id=$1 and tenant_id=$2 union all select null as id,null as tenant_id,null as full_name,null as mobile,null as gender,null as dob,null as document_number,null as emergency,null as address,null as room_number,null as floor,null as bed,0 as advance,0 as monthly_rent,null as status,null as front_proof_key,null as back_proof_key,null as created_at,null as updated_at,'{}'::jsonb as raw_data where false`,[b.studentId,s.tenantId]);
       let student=r.rows[0];
       if(!student){const h=await client.query(`select student_id,snapshot->>'fullName' as full_name from student_history where student_id=$1 and tenant_id=$2 order by checked_out_at desc limit 1`,[b.studentId,s.tenantId]); if(h.rowCount) student={id:b.studentId,full_name:h.rows[0].full_name};}
       if(!student) return {error:"Student not found",status:404};
