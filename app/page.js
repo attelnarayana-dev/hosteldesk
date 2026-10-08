@@ -2,7 +2,134 @@
 import {useEffect,useMemo,useRef,useState} from "react";
 import Tesseract from "tesseract.js";
 
-function Mic({label,value,onChange,area=false}){const [on,setOn]=useState(false),ref=useRef();function go(){const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR)return alert("Mic speech recognition works best in Chrome/Edge.");if(on){ref.current?.stop();return}const r=new SR();ref.current=r;r.lang="en-IN";r.onstart=()=>setOn(true);r.onend=()=>setOn(false);r.onresult=e=>onChange((value?value+" ":"")+e.results[0][0].transcript);r.start()}return <div className="field"><label>{label}</label><div className="inputrow">{area?<textarea value={value} onChange={e=>onChange(e.target.value)}/>:<input value={value} onChange={e=>onChange(e.target.value)}/>}<button type="button" className={"mic "+(on?"listening":"")} onClick={go}>{on?"🔴":"🎙️"}</button></div></div>}
+function Mic({label,value,onChange,area=false}){
+  const [on,setOn]=useState(false);
+  const ref=useRef(null);
+  const valueRef=useRef(value);
+
+  useEffect(()=>{ valueRef.current=value; },[value]);
+
+  function normalizeSpeech(text){
+    let t=String(text||"").trim();
+    const lower=t.toLowerCase();
+
+    const isNumberField=/mobile|phone|emergency|amount|advance|rent|number of beds|stay amount/i.test(label);
+    if(isNumberField){
+      const words={
+        zero:"0",one:"1",two:"2",three:"3",four:"4",five:"5",
+        six:"6",seven:"7",eight:"8",nine:"9",
+        oh:"0",o:"0"
+      };
+
+      t=lower
+        .replace(/\bzero\b|\bone\b|\btwo\b|\bthree\b|\bfour\b|\bfive\b|\bsix\b|\bseven\b|\beight\b|\bnine\b|\boh\b|\bo\b/gi,
+          m=>words[m.toLowerCase()] ?? m)
+        .replace(/[^0-9.]/g,"");
+
+      return t;
+    }
+
+    if(/document number/i.test(label)){
+      return t.toUpperCase().replace(/[^A-Z0-9]/g,"");
+    }
+
+    return t.replace(/\s+/g," ").trim();
+  }
+
+  function go(){
+    const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+
+    if(!SR){
+      alert("Voice input is not supported in this browser. Please use Google Chrome or Microsoft Edge and allow microphone access.");
+      return;
+    }
+
+    if(on){
+      ref.current?.stop();
+      return;
+    }
+
+    const r=new SR();
+    ref.current=r;
+
+    r.lang="en-IN";
+    r.continuous=false;
+    r.interimResults=true;
+    r.maxAlternatives=1;
+
+    let finalText="";
+
+    r.onstart=()=>{
+      setOn(true);
+    };
+
+    r.onresult=e=>{
+      let interim="";
+
+      for(let i=e.resultIndex;i<e.results.length;i++){
+        const transcript=e.results[i][0].transcript;
+
+        if(e.results[i].isFinal){
+          finalText += " " + transcript;
+        }else{
+          interim += " " + transcript;
+        }
+      }
+
+      const spoken=(finalText+" "+interim).trim();
+
+      if(spoken){
+        const normalized=normalizeSpeech(spoken);
+
+        if(normalized){
+          const separator=
+            valueRef.current && !/^\s*$/.test(valueRef.current) ? " " : "";
+
+          onChange(
+            /address|name|note/i.test(label)
+              ? valueRef.current + separator + normalized
+              : normalized
+          );
+        }
+      }
+    };
+
+    r.onerror=e=>{
+      setOn(false);
+
+      if(e.error==="not-allowed" || e.error==="service-not-allowed"){
+        alert("Microphone permission denied. Please allow microphone access and try again.");
+      }else if(e.error==="no-speech"){
+        alert("No speech detected. Please speak clearly and try again.");
+      }
+    };
+
+    r.onend=()=>{
+      setOn(false);
+      ref.current=null;
+    };
+
+    r.start();
+  }
+
+  return <div className="field">
+    <label>{label}</label>
+    <div className="inputrow">
+      {area
+        ? <textarea value={value} onChange={e=>onChange(e.target.value)}/>
+        : <input value={value} onChange={e=>onChange(e.target.value)}/>
+      }
+      <button
+        type="button"
+        className={"mic "+(on?"listening":"")}
+        onClick={go}
+        title={on?"Stop listening":"Voice input"}
+      >
+        {on?"🔴":"🎙️"}
+      </button>
+    </div>
+  </div>
+}
 
 
 function StayDaysInput({value,onChange,label="Stay Days"}){
