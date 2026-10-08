@@ -64,36 +64,31 @@ function Mic({label,value,onChange,area=false}){
     };
 
     r.onresult=e=>{
-      let interim="";
+  let finalText="";
 
-      for(let i=e.resultIndex;i<e.results.length;i++){
-        const transcript=e.results[i][0].transcript;
+  for(let i=e.resultIndex;i<e.results.length;i++){
+    if(e.results[i].isFinal){
+      finalText += " " + e.results[i][0].transcript;
+    }
+  }
 
-        if(e.results[i].isFinal){
-          finalText += " " + transcript;
-        }else{
-          interim += " " + transcript;
-        }
-      }
+  finalText=finalText.trim();
 
-      const spoken=(finalText+" "+interim).trim();
+  if(!finalText) return;
 
-      if(spoken){
-        const normalized=normalizeSpeech(spoken);
+  const normalized=normalizeSpeech(finalText);
+  if(!normalized) return;
 
-        if(normalized){
-          const separator=
-            valueRef.current && !/^\s*$/.test(valueRef.current) ? " " : "";
+  const current=String(valueRef.current||"").trim();
 
-          onChange(
-            /address|name|note/i.test(label)
-              ? valueRef.current + separator + normalized
-              : normalized
-          );
-        }
-      }
-    };
+  const isAppendField=/address|name|note/i.test(label);
 
+  if(isAppendField){
+    onChange(current ? current+" "+normalized : normalized);
+  }else{
+    onChange(normalized);
+  }
+};
     r.onerror=e=>{
       setOn(false);
 
